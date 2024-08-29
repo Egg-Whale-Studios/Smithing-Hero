@@ -19,6 +19,7 @@ public class ScriptableSwords : ScriptableObject
     
     
     public int crafting_cost;
+    public GameObject sword_object;
     
     
 

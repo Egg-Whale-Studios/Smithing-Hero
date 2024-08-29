@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -13,6 +14,9 @@ public class Inventory : MonoBehaviour
     
     public int gold;
     public int gem;
+
+    public GameObject gold_display;
+    private TMP_Text gold_display_value;
     
     public static Inventory instance;
 
@@ -33,10 +37,18 @@ public class Inventory : MonoBehaviour
     [NonSerialized] public int moving_sword_ind;
     [NonSerialized] public int moving_sword_slot_ind;
     [NonSerialized] private GameObject moving_sword_sprite;
+    
+    [Header("Battle Mechanics")]
+    public List<ScriptableSwords> battle_swords;
+    public List<GameObject> damage_texts;
+    public GameObject active_sword_group;
 
     [Header("Upgrades")] 
     public ScriptableSwords crafting_tier;
     [SerializeField] private ScriptableSwords[] sword_tiers;
+    
+    [Header("Windows")]
+    
 
 
     public static Action On_Sword_Change; // Added as action to be able keep track of merging info to display on achievements
@@ -53,16 +65,21 @@ public class Inventory : MonoBehaviour
         {
             Destroy(gameObject);
         }
-        
-        
+
+        Debug.Log(battle_swords.Count);
     }
 
     private void Start()
     {
         On_Sword_Change += Update_Slot_Sword;
-        unlocked_merge_slots = 8;
-        unlocked_battle_slots = 1;
+        On_Sword_Change += Check_Battle_Swords;
+        On_Sword_Change += Update_Damage_Texts;
+        unlocked_merge_slots = 4;
+        unlocked_battle_slots = 2;
         crafting_tier = sword_tiers[0];
+        
+        
+        gold_display_value = gold_display.GetComponentInChildren<TMP_Text>();
         
             
         for (int i = 0; i < smithing_panel.transform.childCount; i++)
@@ -72,6 +89,8 @@ public class Inventory : MonoBehaviour
         }
         
         On_Sword_Change?.Invoke();
+        Change_Gold(100);
+        
         Update_Slot_Background();
     }
 
@@ -84,9 +103,10 @@ public class Inventory : MonoBehaviour
 
         if (moving_sword)
         {
-            
-            moving_sword_sprite.transform.position = Input.mousePosition;
-            
+            Debug.Log(Input.mousePosition);
+            moving_sword_sprite.transform.position = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            moving_sword_sprite.transform.position = new Vector3(moving_sword_sprite.transform.position.x,moving_sword_sprite.transform.position.y,2);
+            moving_sword_sprite.transform.rotation = Quaternion.Euler(0,0,-45);
         }
         
     }
@@ -119,10 +139,13 @@ public class Inventory : MonoBehaviour
         On_Sword_Change?.Invoke();
     }
     
-    public void Add_Gold(int gold_amount)
+    public void Change_Gold(int gold_amount)
     {
         gold += gold_amount;
+        gold_display_value.text = gold.ToString();
     }
+    
+    
     
     public void Add_Gem(int gem_amount)
     {
@@ -151,24 +174,18 @@ public class Inventory : MonoBehaviour
             }
             
             
-            slots[i].transform.GetComponent<Image>().sprite = sword_inventory[i].Item1.sword_sprite;
             
         }
         
         for (int i = unlocked_merge_slots; i < slots.Count; i++)
         {
             slots[i].transform.GetComponent<Image>().sprite = empty;
+            // Buraya lockedlar gelcek
         }
     }
 
     public void Update_Slot_Sword() // Updates the sprite of swords in slots
     {
-        string temp = "";
-        foreach (var sword in sword_inventory)
-        {
-            temp += sword.Item1.sword_name + " : " + sword.Item2 + "\n";
-        }
-        //Debug.Log(temp);
         
         foreach (var slot in slots)
         {
@@ -178,6 +195,7 @@ public class Inventory : MonoBehaviour
         foreach (var sword in sword_inventory)
         {
             slots[sword.Item2].transform.GetChild(0).GetComponent<Image>().sprite = sword.Item1.sword_sprite;
+            slots[sword.Item2].transform.GetChild(0).transform.rotation = Quaternion.Euler(0,0,-45);
         }
         
         
@@ -270,7 +288,7 @@ public class Inventory : MonoBehaviour
                         
                         moving_sword_source = slot.transform.GetChild(0).gameObject;
                         
-                        moving_sword_sprite = Instantiate(moving_sword_source, moving_sword_source.transform.position, Quaternion.identity,slot.transform.parent);
+                        moving_sword_sprite = Instantiate(moving_sword_source, moving_sword_source.transform.position, Quaternion.identity,slot.transform.parent.transform);
 
                         moving_sword_source.GetComponent<Image>().sprite = empty;
                         
@@ -379,15 +397,71 @@ public class Inventory : MonoBehaviour
     
     public void Unlock_Slot()
     {
-        
+        unlocked_merge_slots += 1;
+        Update_Slot_Background();
     }
 
     public void Unlock_Battle_Slot()
     {
-        
+        unlocked_battle_slots += 1;
+        Update_Slot_Background();
     }
     
 
     #endregion
-    
+
+    #region Battle Window
+
+    private void Check_Battle_Swords()
+    {
+        battle_swords.Clear();
+        
+        for (int i = 0; i < unlocked_battle_slots; i++)
+        {
+            foreach (var sword in sword_inventory)
+            {
+                if (sword.Item2 == i)
+                {
+                    battle_swords.Add(sword.Item1);
+                }
+            }
+            
+        }
+        
+        Change_Active_Swords();
+    }
+
+    private void Change_Active_Swords() // Optimize et
+    {
+        GameObject[] temp = GameObject.FindGameObjectsWithTag("Sword");
+        foreach (var old_sword in temp)
+        {
+            Destroy(old_sword);
+        }
+        
+        for (int i = 0; i < battle_swords.Count; i++)
+        {
+            GameObject temp_sword = Instantiate(battle_swords[i].sword_object, new Vector3(0,0,2), Quaternion.identity,active_sword_group.transform);
+            temp_sword.GetComponent<SwordBehaviour>().damage_text = damage_texts[i];
+        }
+        
+    }
+
+    private void Update_Damage_Texts()
+    {
+        for (int i = 0; i < unlocked_battle_slots; i++)
+        {
+            foreach (var sword in sword_inventory)
+            {
+                if (sword.Item2 == i)
+                {
+                    damage_texts[i].SetActive(true);
+                    damage_texts[i].GetComponent<FloatingNumber>().Change_Text(Color.white, sword.Item1.sword_damage.ToString(), 1);
+                }
+            }
+            
+        }
+    }
+
+    #endregion
 }

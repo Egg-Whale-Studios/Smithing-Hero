@@ -15,8 +15,10 @@ MonoBehaviour:
   sword_name: Ruby Sword
   sword_sprite: {fileID: 21300000, guid: a3b72292f6e8a0e4d903ec39bad2c337, type: 3}
   tier: 4
-  sword_damage: 18
-  sword_speed: 5
+  sword_damage: 10
+  sword_speed: 8
   is_elemental: 0
   element_type: 
   is_shiny: 0
+  crafting_cost: 0
+  sword_object: {fileID: 7587491520608449686, guid: 0f5239ed47adfc646b5c3cdcd70fa66e, type: 3}
