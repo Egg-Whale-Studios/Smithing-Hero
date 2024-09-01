@@ -14,37 +14,20 @@ public class MonsterBehaviour : MonoBehaviour
     int reward = 100;
     
     
+    private GameObject text_obj;
+    public FloatingNumber floating_text;
+    public CombatManager manager;
     
-    
-    private Inventory inventory;
-    private GameObject floating_text;
-    public MonsterManager monster_manager;
-    
-    
-    
-    
-    void Start()
+    void Awake()
     {
-        inventory = GameObject.FindGameObjectWithTag("Game Manager").GetComponent<Inventory>();
-        monster_manager = GameObject.FindGameObjectWithTag("Game Manager").GetComponent<MonsterManager>();
-        floating_text = GameObject.FindGameObjectWithTag("Reward Texts").transform.GetChild(0).gameObject;
+        manager = GameObject.FindGameObjectWithTag("Game Manager").GetComponent<CombatManager>();
+        text_obj = GameObject.FindGameObjectWithTag("Reward Texts").transform.GetChild(0).gameObject;
+        floating_text = text_obj.GetComponent<FloatingNumber>();
     }
 
     private void OnEnable()
     {
         current_health = Mathf.Infinity;
-    }
-    
-    void Update()
-    {
-        if (current_health <= 0)
-        {
-            Death();
-        }
-        else if(is_boss) // Zaman tut
-        {
-            
-        }
     }
 
     public void Set_Data(float health, int reward, Color color)
@@ -53,23 +36,17 @@ public class MonsterBehaviour : MonoBehaviour
         current_health = health;
         this.reward = reward;
         GetComponent<SpriteRenderer>().color = color;
+        if (floating_text == null) Debug.Log("Floating text is null");
+        floating_text.Change_Text(Color.yellow, reward + " Gold", 2);
     }
     
     public void take_damage(float damage)
     {
         current_health -= damage;
-    }
-
-    private void Death()
-    {
-        inventory.Change_Gold(reward);
-            
-        floating_text.transform.position = transform.position;
-        floating_text.SetActive(true);
-        floating_text.GetComponent<FloatingNumber>().Change_Text(Color.yellow, reward + " Gold", 2);
-        StartCoroutine(monster_manager.Generate_Monster());
-        monster_manager.Wave_Change();
-        gameObject.SetActive(false);
+        if (current_health <= 0)
+        {
+            manager.Monster_Death(reward);
+        }
     }
 
     private void Boss_Timeout()

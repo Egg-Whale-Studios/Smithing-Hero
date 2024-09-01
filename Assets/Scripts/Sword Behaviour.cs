@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using JetBrains.Annotations;
 using TMPro;
 using Unity.VisualScripting;
@@ -10,14 +11,14 @@ using Random = UnityEngine.Random;
 public class SwordBehaviour : MonoBehaviour
 {
     public ScriptableSwords data;
-    private GameObject battle_scene;
-    private GameObject monster;
-    private BoxCollider2D monster_target_gen_collider;
+    
     private Vector2 monster_size;
-    private Rigidbody2D body;
-    private float x_force;
-    private float y_force;
+    public Rigidbody2D body;
+    
     public GameObject damage_text;
+    public SpriteRenderer sprite_renderer;
+    private Sprite sword_sprite;
+    public TrailRenderer trail_renderer;
 
     private bool monster_present;
 
@@ -31,99 +32,343 @@ public class SwordBehaviour : MonoBehaviour
     
     private int battle_sword_ind;
 
-    private Vector3 attack_direction;
-    void Awake()
+    [Header("Movement")] 
+    public float HorizontalDistance;
+    public float VerticalDistance;
+    string pos="a";
+    Vector3 posit;
+    
+    public GameObject monster;
+    private BoxCollider2D monster_target_gen_collider;
+    
+    
+    void Start()
+    {
+        
+        damage_text.GetComponent<FloatingNumber>().Change_Text(Color.white, sword_damage.ToString(), 1);
+        
+        sprite_renderer = GetComponent<SpriteRenderer>();
+        
+        Vector2 monster_size = monster.GetComponent<BoxCollider2D>().size;
+        
+        HorizontalDistance = monster_size.x * 1.5f;
+        VerticalDistance = monster_size.y * 1.5f;
+        
+    }
+    
+    
+
+    void OnEnable()
     {
         sword_damage = data.sword_damage;
         sword_speed = data.sword_speed;
         is_elemental = data.is_elemental;
         element_type = data.element_type;
         is_shiny = data.is_shiny;
-        
-        body = GetComponent<Rigidbody2D>();
-        battle_scene = GameObject.FindGameObjectWithTag("Battle Window");
-        monster = battle_scene.transform.GetChild(battle_scene.transform.childCount - 1).gameObject;
-        
-        Monster_Check(); // Monster değiştiğinde tekrar kontrol etmeyi yazmayı unutma
-        Turn_Around();
-        StartCoroutine(Hitagain());
-        
+        sprite_renderer.sprite = data.sword_sprite;
         damage_text.GetComponent<FloatingNumber>().Change_Text(Color.white, sword_damage.ToString(), 1);
-        
-    }
-    
-    
 
-    void Update()
-    {
         
-        if ((monster.transform.position - transform.position).magnitude > 1000)
+        trail_renderer.enabled = true;
+        
+        switch (element_type)
         {
-            Turn_Around();
+           
+            
+            case "Fire":
+                trail_renderer.startColor = Color.red;
+                trail_renderer.endColor = new Color(Color.red.r, Color.red.g, Color.red.b, 0.3f);
+                break;
+            case "Earth":
+                trail_renderer.startColor = Color.gray;
+                trail_renderer.endColor = new Color(Color.grey.r, Color.grey.g, Color.grey.b, 0.3f);
+                break;
+            case "Charge":
+                trail_renderer.startColor = Color.yellow;
+                trail_renderer.endColor = new Color(Color.yellow.r, Color.yellow.g, Color.yellow.b, 0.3f);
+                break;
+            default:
+                trail_renderer.enabled = false;
+                break;
         }
-
-        body.AddForce((attack_direction - transform.position).normalized * sword_speed);
-
-
-        body.velocity = sword_speed * body.velocity.normalized;
-
-        transform.rotation =
-            Quaternion.Euler(0, 0, Mathf.Atan2(body.velocity.y, body.velocity.x) * Mathf.Rad2Deg - 90);
-    
+        
+        Monster_Check();
         
     }
-
-    private void Monster_Check()
+    
+    
+    public void Set_Script(ScriptableSwords script)
+    {
+        data = script;
+    }
+    
+    private void Monster_Check() // optimize et
     {
         
-        monster = GameObject.FindGameObjectWithTag("Monster");
         monster_target_gen_collider = monster.GetComponent<BoxCollider2D>();
         monster_size = monster_target_gen_collider.size;
     }
-
-
-    private void Turn_Around()
+    
+    #region Sword Movement
+    public void moveNextPos()
     {
+        CalculatePos();
+        RotateTowards(posit);
+        float delay_time = Random.Range(0f, 0.2f);
+        transform.DOMove(posit,1f).SetEase(Ease.InOutBack).SetDelay(delay_time);
 
-        float temp_x = Random.Range(monster.transform.position.x - monster_size.x / 2, monster.transform.position.x + monster_size.x / 2);
-        float temp_y = Random.Range(monster.transform.position.y - monster_size.y / 2, monster.transform.position.y + monster_size.y / 2);
         
-
-        attack_direction = new Vector3(temp_x, temp_y,0);
-        
-
-    }
-
-    public IEnumerator Hitagain()
-    {
-        
-        yield return new WaitForSeconds(0.5f);
-        Turn_Around();
     }
     
-    void OnDrawGizmos()
+    void CalculatePos()
     {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawSphere(attack_direction, 0.5f);
+        int option= Random.Range(1, 4);
+        if (pos == "a")
+        {
+            if (option == 1)
+            {
+                selectOnD();
+            }
+            if (option == 2)
+            {
+                selectOnE();
+            }
+            if (option == 3)
+            {
+                selectOnF();
+            }
+        }
+        else if (pos == "b")
+        {
+            if (option == 1)
+            {
+                selectOnG();
+            }
+            if (option == 2)
+            {
+                selectOnE();
+            }
+            if (option == 3)
+            {
+                selectOnF();
+            }
+        }
+        else if (pos == "c")
+        {
+            if (option == 1)
+            {
+                selectOnG();
+            }
+            if (option == 2)
+            {
+                selectOnH();
+            }
+            if (option == 3)
+            {
+                selectOnF();
+            }
+        }
+        else if (pos == "d")
+        {
+            if (option == 1)
+            {
+                selectOnG();
+            }
+            if (option == 2)
+            {
+                selectOnH();
+            }
+            if (option == 3)
+            {
+                selectOnA();
+            }
+        }
+        else if(pos == "e")
+        {
+            if (option == 1)
+            {
+                selectOnB();
+            }
+            if (option == 2)
+            {
+                selectOnH();
+            }
+            if (option == 3)
+            {
+                selectOnA();
+            }
+        }
+        else if (pos == "f")
+        {
+            if (option == 1)
+            {
+                selectOnB();
+            }
+            if (option == 2)
+            {
+                selectOnC();
+            }
+            if (option == 3)
+            {
+                selectOnA();
+            }
+        }
+        else if (pos == "g")
+        {
+            if (option == 1)
+            {
+                selectOnB();
+            }
+            if (option == 2)
+            {
+                selectOnC();
+            }
+            if (option == 3)
+            {
+                selectOnD();
+            }
+        }
+        else if (pos == "h")
+        {
+            if (option == 1)
+            {
+                selectOnE();
+            }
+            if (option == 2)
+            {
+                selectOnC();
+            }
+            if (option == 3)
+            {
+                selectOnD();
+            }
+        }
+        posit = monster.transform.position + posit;
     }
+    
+    void selectOnA()
+    {
+      
+        int option = Random.Range(1, 3);
+        if (option == 1)
+        {
+            float y = Random.Range(1 * VerticalDistance / 3, 3 * VerticalDistance / 3);
+            float x = -1*HorizontalDistance;
+            posit = new Vector2(x, y);
+        }
+        if (option == 2)
+        {
+            float x = Random.Range(-1*HorizontalDistance / 3, -1 * HorizontalDistance / 3);
+            float y = VerticalDistance;
+            posit = new Vector2(x, y);
+        }
+        pos = "a";
+    }
+    void selectOnB()
+    {
+     
+        float x = Random.Range(-1 * HorizontalDistance / 3, HorizontalDistance / 3);
+        float y = VerticalDistance;
+        posit = new Vector2(x, y);
+        pos = "b";
+    }
+    void selectOnC()
+    {
+     
+        int option = Random.Range(1, 3);
+        if (option == 1)
+        {
+            float y = Random.Range(1 * VerticalDistance / 3, 3 * VerticalDistance / 3);
+            float x = 1 * HorizontalDistance;
+            posit = new Vector2(x, y);
+        }
+        if (option == 2)
+        {
+            float x = Random.Range(1 * HorizontalDistance / 3, 3 * HorizontalDistance / 3);
+            float y = VerticalDistance;
+            posit = new Vector2(x, y);
+        }
+        pos = "c";
+    }
+    void selectOnD()
+    {
+        
+        float y = Random.Range(-1 * VerticalDistance / 3, VerticalDistance / 3);
+        float x = HorizontalDistance;
+        posit = new Vector2(x, y);
+        pos = "d";
+    }
+    void selectOnE()
+    {
+      
+        int option = Random.Range(1, 3);
+        if (option == 1)
+        {
+            float y = Random.Range(-3 * VerticalDistance / 3, -1*VerticalDistance / 3);
+            float x = HorizontalDistance;
+            posit = new Vector2(x, y);
+        }
+        if (option == 2)
+        {
+            float x = Random.Range(HorizontalDistance / 3, 3 * HorizontalDistance / 3);
+            float y = -1*VerticalDistance;
+            posit = new Vector2(x, y);
+        }
+        pos = "e";
+    }
+    void selectOnF()
+    {
+      
+        float x = Random.Range(-1 * HorizontalDistance / 3, HorizontalDistance / 3);
+        float y = -1*VerticalDistance;
+        posit = new Vector2(x, y);
+        pos = "f";
+    }
+    void selectOnG()
+    {
+        
+        int option = Random.Range(1, 3);
+        if (option == 1)
+        {
+            float y = Random.Range(-3 * VerticalDistance / 3, -1 * VerticalDistance / 3);
+            float x = -1 * HorizontalDistance;
+            posit = new Vector2(x, y);
+        }
+        if (option == 2)
+        {
+            float x = Random.Range(-3 * HorizontalDistance / 3, -1 * HorizontalDistance / 3);
+            float y = -1*VerticalDistance;
+            posit = new Vector2(x, y);
+        }
+        pos = "g";
+    }
+    void selectOnH()
+    {
+        
+        float y = Random.Range(-1 * VerticalDistance / 3, VerticalDistance / 3);
+        float x = -1*HorizontalDistance;
+        posit = new Vector2(x, y);
+        pos = "h";
+    }
+    
+    private void RotateTowards(Vector2 targetPosition)
+    {
+        Vector3 direction = targetPosition - (Vector2)transform.position;
+        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+        transform.DORotate(new Vector3(0, 0, angle - 90), 0.5f).SetEase(Ease.InOutSine);
+    }
+    
+    
+    #endregion
     
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (other.gameObject.CompareTag("Monster"))
         {
-            
-            damage_text.transform.position = transform.position;
-            damage_text.transform.localScale = Vector2.one;
-            damage_text.SetActive(true);
+            damage_text.GetComponent<FloatingNumber>().AnimateFloatingNumber(transform);
             other.gameObject.GetComponent<MonsterBehaviour>().take_damage(sword_damage);
         }
     }
 
-    private void OnTriggerExit2D(Collider2D other)
-    {
-        if (other.gameObject.CompareTag("Monster"))
-        {
-            StartCoroutine(Hitagain());
-        }
-    }
+  
 }

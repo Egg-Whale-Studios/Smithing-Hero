@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 459058f30eab591449df8a432cbec23b, type: 3}
+  m_Name: T8 C
+  m_EditorClassIdentifier: 
+  sword_name: Amethyst Sword
+  sword_sprite: {fileID: 21300000, guid: 415dce9b51c357440b2d11c2119ae679, type: 3}
+  tier: 64
+  sword_damage: 32
+  sword_speed: 16
+  is_elemental: 1
+  element_type: Charge
+  is_shiny: 0
