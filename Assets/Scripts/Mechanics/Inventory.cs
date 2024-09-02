@@ -48,7 +48,11 @@ public class Inventory : MonoBehaviour
     public GameObject[] active_sword_group;
     private List<SwordBehaviour> active_sword_scripts = new List<SwordBehaviour>();
 
-    public ScriptableSwords[] hero_sword = new ScriptableSwords[5];
+    public ScriptableSwords[] hero_sword = new ScriptableSwords[5]; // Bu ikisini birlestir
+    public Hero_Data[] hero = new Hero_Data[5];
+    
+    
+    public List<Hero_Data> hero_inventory = new List<Hero_Data>(); // Hero data, evolution stage, combat level
 
     [Header("Upgrades")] 
     public int crafting_tier;
@@ -197,12 +201,39 @@ public class Inventory : MonoBehaviour
     }
     
     
-    
     public void Add_Gem(int gem_amount)
     {
         gem += gem_amount;
     }
-    
+
+
+    public void Add_Hero(ScriptableHeroes new_hero)
+    {
+        bool is_new = true;
+        int old_ind = 0;
+        
+        for (int i = 0; i < hero_inventory.Count; i++)
+        {
+            
+            if (hero_inventory[i].data == new_hero)
+            {
+                is_new = false;
+                old_ind = i;
+                break;
+            }
+        }
+        
+        if (is_new)
+        {
+            hero_inventory.Add(new Hero_Data(new_hero,1,1));
+        }
+        else
+        {
+            hero_inventory[old_ind].evolution_level += 1;
+        }
+        
+        
+    }
     
 
     #endregion

@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4d68b6cd324d2b4da96b5ae38ba972b, type: 3}
+  m_Name: Charged Mellow
+  m_EditorClassIdentifier: 
+  name: Charged Mellow
+  hero_sprite: {fileID: 21300108, guid: 5cf1b4629c7cb104e98d369448084abd, type: 3}
+  rarity: 1
+  buff_type: 2

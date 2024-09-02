@@ -16,6 +16,7 @@ public class Buttons : MonoBehaviour
     public GameObject shop_window;
     public GameObject hero_window;
     public GameObject sword_choice_window;
+    public GameObject hero_choice_window;
     
     private Vector3 smithing_window_start_pos;
     public bool is_battle_window = true;
@@ -40,6 +41,12 @@ public class Buttons : MonoBehaviour
     private List<GameObject> sword_choice_slots = new List<GameObject>();
     private bool is_sword_choice_open;
     public Image[] hero_sword_displays;
+    
+    private List<Image> hero_choice_images = new List<Image>();
+    private List<Image> hero_choice_bg_images = new List<Image>(); // efsaneviler fln için
+    private List<GameObject> hero_choice_slots = new List<GameObject>();
+    private bool is_hero_choice_open;
+    public Image[] hero_displays;
 
     [Header("Battle Window")] 
     public GameObject[] battle_swords;
@@ -60,6 +67,11 @@ public class Buttons : MonoBehaviour
             sword_choice_images.Add(sword_choice_window.transform.GetChild(i).transform.GetChild(0).GetComponent<Image>());
             sword_choice_bg_images.Add(sword_choice_window.transform.GetChild(i).GetComponent<Image>());
             sword_choice_slots.Add(sword_choice_window.transform.GetChild(i).gameObject);
+            
+            hero_choice_images.Add(hero_choice_window.transform.GetChild(i).transform.GetChild(0).GetComponent<Image>());
+            hero_choice_bg_images.Add(hero_choice_window.transform.GetChild(i).GetComponent<Image>());
+            hero_choice_slots.Add(hero_choice_window.transform.GetChild(i).gameObject);
+            
         }
         
     }
@@ -102,20 +114,15 @@ public class Buttons : MonoBehaviour
         
     }
 
-    public void Change_Window()
+    public void Change_Window(string direction)
     {
-        if (is_battle_window)
+        if (direction == "Left")
         {
-            
-            is_battle_window = false;
-            Camera.main.transform.position = smithing_window.transform.position;
-            Camera.main.transform.position = new Vector3(Camera.main.transform.position.x, Camera.main.transform.position.y, 0);
+            Camera.main.transform.position -= new Vector3(4.75f, 0, 0);
         }
         else
         {
-            
-            is_battle_window = true;
-            Camera.main.transform.position = Vector3.zero;
+            Camera.main.transform.position += new Vector3(4.75f, 0, 0);
         }
         
     }
@@ -153,11 +160,11 @@ public class Buttons : MonoBehaviour
             if(inventory.hero_sword[temp_hero_ind] != null)
             {
                 
-                update_sword_choice("Already Equipped");
+                Update_Sword_Choice("Already Equipped");
             }
             else
             {
-                update_sword_choice("Not Equipped");
+                Update_Sword_Choice("Not Equipped");
             }
             
             sword_choice_window.transform.parent.transform.parent.gameObject.SetActive(true);
@@ -169,7 +176,7 @@ public class Buttons : MonoBehaviour
         
     }
 
-    public void update_sword_choice(string window_type)
+    public void Update_Sword_Choice(string window_type)
     {
         for (int a = 0; a < sword_choice_slots.Count; a++)
         {
@@ -236,6 +243,69 @@ public class Buttons : MonoBehaviour
         
     }
     
+    public void Open_Close_Hero_Choice_Window(int temp_hero_ind) 
+    {
+        
+        
+        if(is_hero_choice_open) hero_choice_window.transform.parent.transform.parent.gameObject.SetActive(false);
+
+        else
+        {
+            if(inventory.hero[temp_hero_ind] != null)
+            {
+                
+                Update_Hero_Choice("Already Equipped");
+            }
+            else
+            {
+                Update_Hero_Choice("Not Equipped");
+            }
+            
+            hero_choice_window.transform.parent.transform.parent.gameObject.SetActive(true);
+        }
+        
+        is_hero_choice_open = !is_hero_choice_open;
+        
+        hero_ind = temp_hero_ind; // Burada bi bug çıkabilir
+        
+    }
+    
+    public void Update_Hero_Choice(string window_type)
+    {
+        for (int a = 0; a < hero_choice_slots.Count; a++)
+        {
+            hero_choice_slots[a].gameObject.SetActive(false);
+        }
+        
+        
+        if (window_type == "Already Equipped")
+        {
+            hero_choice_slots[0].gameObject.SetActive(true);
+            hero_choice_images[0].sprite = cross;
+            
+            
+            for (int i = 0; i < inventory.hero_inventory.Count; i++)
+            {
+                if (inventory.hero_inventory[i] == inventory.hero[hero_ind]) continue;
+                hero_choice_slots[i + 1].gameObject.SetActive(true);
+                hero_choice_images[i + 1].sprite = inventory.hero_inventory[i].data.hero_sprite;
+            }
+        }
+
+        else
+        {
+            for (int i = 0; i < inventory.hero_inventory.Count; i++)
+            {
+                
+                hero_choice_slots[i].gameObject.SetActive(true);
+                hero_choice_images[i].sprite = inventory.hero_inventory[i].data.hero_sprite;
+                
+            }
+        }
+        
+        
+    }
+    
     public void Choose_Sword()
     {
         GameObject button = UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject;
@@ -287,6 +357,49 @@ public class Buttons : MonoBehaviour
         
     }
     
+    
+    public void Choose_Hero() // Optimize edilebilir
+    {
+        GameObject button = UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject;
+        int temp_hero_ind = button.transform.GetSiblingIndex();
+        
+        
+        if (inventory.hero[hero_ind] == null)
+        {
+            inventory.hero[hero_ind] = inventory.hero_inventory[temp_hero_ind];
+            
+        }
+        else
+        {
+            if (temp_hero_ind == 0)
+            {
+                inventory.hero[hero_ind] = null;
+
+            }
+            else
+            {
+                inventory.hero[hero_ind] = inventory.hero_inventory[temp_hero_ind -1];
+                
+            }
+        }
+
+        for (int i = 0; i < hero_displays.Length; i++)
+        {
+            if (inventory.hero[i] != null)
+            {
+                hero_displays[i].sprite = inventory.hero[i].data.hero_sprite;
+            }
+            else
+            {
+                hero_displays[i].sprite = empty;
+            }
+        }
+        
+        
+        
+        Open_Close_Hero_Choice_Window(hero_ind);
+        
+    }
 
     #endregion
     
