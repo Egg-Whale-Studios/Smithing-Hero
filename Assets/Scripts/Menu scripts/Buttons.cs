@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using DG.Tweening;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -35,6 +36,7 @@ public class Buttons : MonoBehaviour
     private RectTransform hero_window_rect;
     private bool is_hero_window_open;
     private int hero_ind;
+    private int hero_to_replace_ind;
     
     private List<Image> sword_choice_images = new List<Image>();
     private List<Image> sword_choice_bg_images = new List<Image>();
@@ -47,6 +49,12 @@ public class Buttons : MonoBehaviour
     private List<GameObject> hero_choice_slots = new List<GameObject>();
     private bool is_hero_choice_open;
     public Image[] hero_displays;
+    
+    public GameObject hero_info_window;
+    public Image hero_info_image;
+    public TMP_Text hero_info_stats;
+    public TMP_Text hero_info_name;
+    public TMP_Text hero_info_rarity;
 
     [Header("Battle Window")] 
     public GameObject[] battle_swords;
@@ -131,6 +139,7 @@ public class Buttons : MonoBehaviour
     
     public void Battle_Tap()
     {
+        
         for (int i = 0; i < battle_swords.Length; i++)
         {
             if (battle_swords[i].activeSelf)
@@ -246,7 +255,7 @@ public class Buttons : MonoBehaviour
     public void Open_Close_Hero_Choice_Window(int temp_hero_ind) 
     {
         
-        
+        hero_ind = temp_hero_ind; // Burada bi bug çıkabilir
         if(is_hero_choice_open) hero_choice_window.transform.parent.transform.parent.gameObject.SetActive(false);
 
         else
@@ -266,7 +275,7 @@ public class Buttons : MonoBehaviour
         
         is_hero_choice_open = !is_hero_choice_open;
         
-        hero_ind = temp_hero_ind; // Burada bi bug çıkabilir
+        
         
     }
     
@@ -288,7 +297,7 @@ public class Buttons : MonoBehaviour
             {
                 if (inventory.hero_inventory[i] == inventory.hero[hero_ind]) continue;
                 hero_choice_slots[i + 1].gameObject.SetActive(true);
-                hero_choice_images[i + 1].sprite = inventory.hero_inventory[i].data.hero_sprite;
+                hero_choice_images[i + 1].sprite = inventory.hero_inventory[i].hero_data.hero_sprite;
             }
         }
 
@@ -298,7 +307,7 @@ public class Buttons : MonoBehaviour
             {
                 
                 hero_choice_slots[i].gameObject.SetActive(true);
-                hero_choice_images[i].sprite = inventory.hero_inventory[i].data.hero_sprite;
+                hero_choice_images[i].sprite = inventory.hero_inventory[i].hero_data.hero_sprite;
                 
             }
         }
@@ -337,6 +346,7 @@ public class Buttons : MonoBehaviour
                 
                 
             }
+            
         }
 
         for (int i = 0; i < hero_sword_displays.Length; i++)
@@ -350,9 +360,9 @@ public class Buttons : MonoBehaviour
                 hero_sword_displays[i].sprite = empty;
             }
         }
-        
-        
-        
+
+
+        Inventory.On_Sword_Change();
         Open_Close_Sword_Window(hero_ind);
         
     }
@@ -360,34 +370,28 @@ public class Buttons : MonoBehaviour
     
     public void Choose_Hero() // Optimize edilebilir
     {
-        GameObject button = UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject;
-        int temp_hero_ind = button.transform.GetSiblingIndex();
+        
         
         
         if (inventory.hero[hero_ind] == null)
         {
-            inventory.hero[hero_ind] = inventory.hero_inventory[temp_hero_ind];
-            
+            inventory.hero[hero_ind] = inventory.hero_inventory[hero_to_replace_ind];
+            inventory.hero_inventory.RemoveAt(hero_to_replace_ind); // burada çıkarttık listeden hero'yu ileride buradan patlayabiliriz
         }
         else
         {
-            if (temp_hero_ind == 0)
-            {
-                inventory.hero[hero_ind] = null;
-
-            }
-            else
-            {
-                inventory.hero[hero_ind] = inventory.hero_inventory[temp_hero_ind -1];
-                
-            }
+        
+            inventory.hero_inventory.Add(inventory.hero[hero_ind]); // burada ekledik listeye hero'yu ileride buradan patlayabiliriz
+            inventory.hero[hero_ind] = inventory.hero_inventory[hero_to_replace_ind -1];
+            inventory.hero_inventory.RemoveAt(hero_to_replace_ind-1); // burada çıkarttık listeden hero'yu ileride buradan patlayabiliriz
+        
         }
 
         for (int i = 0; i < hero_displays.Length; i++)
         {
             if (inventory.hero[i] != null)
             {
-                hero_displays[i].sprite = inventory.hero[i].data.hero_sprite;
+                hero_displays[i].sprite = inventory.hero[i].hero_data.hero_sprite;
             }
             else
             {
@@ -396,11 +400,71 @@ public class Buttons : MonoBehaviour
         }
         
         
-        
+        hero_info_window.SetActive(false);
         Open_Close_Hero_Choice_Window(hero_ind);
         
     }
 
+    public void Open_Hero_Info_Window()
+    {
+        GameObject button = UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject;
+        hero_to_replace_ind = button.transform.GetSiblingIndex();
+        Hero_Data hero_data;
+        
+        if (inventory.hero[hero_ind] == null)
+        {
+            hero_data = inventory.hero_inventory[hero_to_replace_ind];
+        }
+        else
+        {
+            if (hero_to_replace_ind != 0)
+            {
+                
+                hero_data = inventory.hero_inventory[hero_to_replace_ind - 1];
+            }
+            else
+            {
+                inventory.hero_inventory.Add(inventory.hero[hero_ind]);
+                inventory.hero[hero_ind] = null;
+                
+                hero_choice_window.transform.parent.parent.gameObject.SetActive(false);
+                hero_displays[hero_ind].sprite = empty;
+                return;
+            }
+        }
+        
+        
+        
+        hero_info_window.SetActive(true);
+        hero_info_image.sprite = hero_data.hero_data.hero_sprite;
+        hero_info_name.text = hero_data.hero_data.name;
+        
+        switch (hero_data.hero_data.rarity)
+        {
+            case 1:
+                hero_info_rarity.text = "Common Hero";
+                
+                break;
+            case 2:
+                hero_info_rarity.text = "Epic Hero";
+                hero_info_rarity.color = Color.magenta;
+                break;
+            case 3:
+                hero_info_rarity.text = "Legendary Hero";
+                hero_info_rarity.color = Color.yellow;
+                break;
+        }
+    }
+
+    public void Hero_Level_Up(int temp_ind)
+    {
+
+        if (inventory.hero[temp_ind] != null)
+        {
+            inventory.hero[temp_ind].combat_level++;
+        }
+    }
+    
     #endregion
     
     
@@ -414,50 +478,6 @@ public class Buttons : MonoBehaviour
         if (is_shop_window_open) shop_window_rect.DOAnchorPosY(-1140, 0.5f).SetEase(Ease.OutBack);
         else shop_window_rect.DOAnchorPosY(-2540, 0.5f).SetEase(Ease.InBack);
     }
-
-    #region Shop Upgrades
-
-    public void Unlock_Merge_Slot()
-    {
-        if (inventory.gold >= merge_slot_cost)
-        {
-            inventory.Change_Gold(-merge_slot_cost);
-            inventory.Unlock_Slot();
-        }
-        else
-        {
-            Debug.Log("Not enough gold");
-        }
-    }
-    
-    public void Unlock_Battle_Slot()
-    {
-        if (inventory.gold >= battle_slot_cost)
-        {
-            inventory.Change_Gold(battle_slot_cost);
-            inventory.Unlock_Battle_Slot();
-        }
-        else
-        {
-            Debug.Log("Not enough gold");
-        }
-    }
-
-    public void Elemental_Chance_Upgrade()
-    {
-        
-    }
-    public void Unlock_Automatic_Crafting()
-    {
-        
-    }
-
-    public void Craft_Upper_Tier()
-    {
-        
-    }
-
-    #endregion
     
     
 

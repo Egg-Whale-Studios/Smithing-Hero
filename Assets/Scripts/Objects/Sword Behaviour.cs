@@ -20,15 +20,25 @@ public class SwordBehaviour : MonoBehaviour
     private Sprite sword_sprite;
     public TrailRenderer trail_renderer;
 
+    public Hero_Data data_from_hero;
+
+
     private bool monster_present;
 
     [Header("Stats")]
-    private float sword_damage;
-    private float sword_speed;
+    [NonSerialized] public float sword_damage;
+    [NonSerialized] public float damage_to_deal;
+    [NonSerialized] public float sword_speed;
     private bool is_elemental;
     private string element_type;
     private bool is_shiny;
+    private float attack_cooldown;
+    
+    private Upgrades upgrades;
 
+    public bool is_heroic = false;
+
+    public Color gizmoColor = Color.red;
     
     private int battle_sword_ind;
 
@@ -39,13 +49,14 @@ public class SwordBehaviour : MonoBehaviour
     Vector3 posit;
     
     public GameObject monster;
+    public MonsterBehaviour monster_data;
     private BoxCollider2D monster_target_gen_collider;
     
     
     void Start()
     {
-        
-        damage_text.GetComponent<FloatingNumber>().Change_Text(Color.white, sword_damage.ToString(), 1);
+        upgrades = Upgrades.instance;
+        attack_cooldown = 3f;
         
         sprite_renderer = GetComponent<SpriteRenderer>();
         
@@ -92,10 +103,67 @@ public class SwordBehaviour : MonoBehaviour
                 break;
         }
         
+        Buff_By_Element();
         Monster_Check();
+        
         
     }
     
+
+    public void Buff_By_Element()
+    {
+        switch (element_type)
+        {
+            case "Fire":
+                if (monster_data.element_type == "fire")
+                {
+                    sword_damage *= 1.5f;
+                }
+                else
+                {
+                    sword_damage= data.sword_damage;
+                }
+                break;
+            case "Earth":
+                if (monster_data.element_type == "earth")
+                {
+                    sword_damage *= 1.5f;
+                }
+                   
+                else
+                {
+                    sword_damage = data.sword_damage;
+                }
+                break;
+            case "Charge":
+                if (monster_data.element_type == "charge")
+                {
+                    sword_damage *= 1.5f;
+                }
+                else
+                {
+                    sword_damage = data.sword_damage;
+                }
+                break;
+
+        }
+    }
+    
+    public IEnumerator AttackAlways()
+    {
+        if (is_heroic)
+        {
+            Vector2 temp_pos = posit;
+            CalculatePos();
+            RotateTowards(posit);
+            
+            transform.DOMove(posit, attack_cooldown/sword_speed).SetEase(Ease.InOutBack);
+            yield return new WaitForSeconds(data_from_hero.hero_data.cooldown);
+            
+            StartCoroutine(AttackAlways());
+        }
+    }
+        
     
     public void Set_Script(ScriptableSwords script)
     {
@@ -112,6 +180,7 @@ public class SwordBehaviour : MonoBehaviour
     #region Sword Movement
     public void moveNextPos()
     {
+        
         CalculatePos();
         RotateTowards(posit);
         float delay_time = Random.Range(0f, 0.2f);
@@ -119,10 +188,13 @@ public class SwordBehaviour : MonoBehaviour
 
         
     }
+
     
     void CalculatePos()
     {
+        
         int option= Random.Range(1, 4);
+        
         if (pos == "a")
         {
             if (option == 1)
@@ -243,6 +315,7 @@ public class SwordBehaviour : MonoBehaviour
                 selectOnD();
             }
         }
+        
         posit = monster.transform.position + posit;
     }
     
@@ -365,10 +438,26 @@ public class SwordBehaviour : MonoBehaviour
     {
         if (other.gameObject.CompareTag("Monster"))
         {
+            damage_to_deal = 0;
+            
+            damage_to_deal = sword_damage + upgrades.Get_Attack_Bonus(sword_damage);
+            
+            if(data_from_hero != null) data_from_hero.hero_data.Buff(damage_to_deal, sword_speed,data_from_hero.combat_level,data_from_hero.evolution_level, this);
+            damage_text.GetComponent<FloatingNumber>().Change_Text(Color.white, damage_to_deal.ToString(), 1);
             damage_text.GetComponent<FloatingNumber>().AnimateFloatingNumber(transform);
-            other.gameObject.GetComponent<MonsterBehaviour>().take_damage(sword_damage);
+            other.gameObject.GetComponent<MonsterBehaviour>().take_damage(damage_to_deal);
         }
     }
 
-  
+    void OnDrawGizmos()
+    {
+        // Gizmos'un rengini ayarlayın
+        Gizmos.color = gizmoColor;
+
+        // 2D noktayı işaretlemek için bir daire çiziyoruz
+        Gizmos.DrawSphere(posit, 0.5f);
+    }
+    
+
+
 }

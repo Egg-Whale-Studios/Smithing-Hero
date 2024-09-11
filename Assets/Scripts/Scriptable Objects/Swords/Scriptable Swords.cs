@@ -27,3 +27,22 @@ public enum ElementType
     type2,
     type3,
 }
+
+public class Sword_Data
+{
+    public ScriptableSwords data;
+    public int level;
+    public int rarity;
+    public int tier;
+    
+    public Sword_Data(ScriptableSwords sword, int sword_rarity, int sword_tier, int sword_level)
+    {
+        data = sword;
+        rarity = sword_rarity;
+        tier = sword_tier;
+        level = sword_level;
+        
+        
+        
+    }
+}

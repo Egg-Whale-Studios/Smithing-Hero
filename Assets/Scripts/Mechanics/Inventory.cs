@@ -6,6 +6,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using Random = System.Random;
 
 public class Inventory : MonoBehaviour
 {
@@ -38,6 +39,8 @@ public class Inventory : MonoBehaviour
     [NonSerialized] public int moving_sword_slot_ind;
     [NonSerialized] private GameObject moving_sword_sprite;
 
+    public float double_merge_chance;
+
     private bool is_elemental;
     private string element_name;
     private bool is_shiny;
@@ -46,17 +49,18 @@ public class Inventory : MonoBehaviour
     public List<ScriptableSwords> battle_swords;
     public List<GameObject> damage_texts;
     public GameObject[] active_sword_group;
+    public GameObject[] active_hero_sword_group;
     private List<SwordBehaviour> active_sword_scripts = new List<SwordBehaviour>();
+    public SwordBehaviour[] active_hero_sword_scripts = new SwordBehaviour[5];
 
     public ScriptableSwords[] hero_sword = new ScriptableSwords[5]; // Bu ikisini birlestir
     public Hero_Data[] hero = new Hero_Data[5];
-    
-    
     public List<Hero_Data> hero_inventory = new List<Hero_Data>(); // Hero data, evolution stage, combat level
 
     [Header("Upgrades")] 
     public int crafting_tier;
     [SerializeField] private ScriptableSwords[] sword_tiers;
+    public int sword_rarity;
     
     [Header("Windows")]
     
@@ -89,9 +93,11 @@ public class Inventory : MonoBehaviour
         On_Sword_Change += Check_Battle_Swords;
         On_Sword_Change += Update_Damage_Texts;
         
-        unlocked_merge_slots = 12;
-        unlocked_battle_slots = 5;
+        unlocked_merge_slots = 4;
+        unlocked_battle_slots = 1;
         crafting_tier = 0;
+
+        double_merge_chance = 0;
         
         
         gold_display_value = gold_display.GetComponentInChildren<TMP_Text>();
@@ -124,6 +130,7 @@ public class Inventory : MonoBehaviour
 
     private void Update()
     {
+        
         
         if (Input.GetMouseButtonDown(0) && !moving_sword) Pick_Up_Sword();
         if (Input.GetMouseButtonUp(0) && moving_sword) Drop_Sword();
@@ -215,7 +222,7 @@ public class Inventory : MonoBehaviour
         for (int i = 0; i < hero_inventory.Count; i++)
         {
             
-            if (hero_inventory[i].data == new_hero)
+            if (hero_inventory[i].hero_data == new_hero)
             {
                 is_new = false;
                 old_ind = i;
@@ -244,6 +251,7 @@ public class Inventory : MonoBehaviour
     public void Update_Slot_Background() //Updates the background sprite of slots, showing if they are unlocked and indicating battle slots
     // Optimize et
     {
+        
         Tuple<ScriptableSwords,int> temp_sword = null;
         
         
@@ -352,7 +360,8 @@ public class Inventory : MonoBehaviour
         
         int create_ind = sword_inventory[target_ind].Item2;
         int extra_index = BuffWeapon(sword_inventory[source_ind].Item1, sword_inventory[target_ind].Item1);
-        
+
+        if (double_merge_chance > UnityEngine.Random.Range(0f, 100f)) extra_index += 8;
         
         if(source_ind > target_ind)
         {
@@ -531,12 +540,7 @@ public class Inventory : MonoBehaviour
         }
         
         moving_sword = false;
-
-        /*
-        foreach (var sword in sword_inventory)
-        {
-            Debug.Log("The index of " +sword.Item1.sword_name +" is " +sword.Item2);
-        }*/
+        
         
     }
     
@@ -550,6 +554,7 @@ public class Inventory : MonoBehaviour
     {
         unlocked_battle_slots += 1;
         Update_Slot_Background();
+        On_Sword_Change?.Invoke();
     }
     
 
@@ -557,8 +562,9 @@ public class Inventory : MonoBehaviour
 
     #region Battle Window
 
-    private void Check_Battle_Swords()
+    public void Check_Battle_Swords()
     {
+        
         battle_swords.Clear();
         
         for (int i = 0; i < unlocked_battle_slots; i++)
@@ -583,6 +589,12 @@ public class Inventory : MonoBehaviour
         {
             old_sword.SetActive(false);
         }
+
+        for (int i = 0; i < hero_sword.Length; i++)
+        {
+            active_hero_sword_scripts[i].is_heroic = false;
+            active_hero_sword_group[i].SetActive(false);
+        }
         
         for (int i = 0; i < battle_swords.Count; i++)
         {
@@ -592,6 +604,22 @@ public class Inventory : MonoBehaviour
             temp_sword.SetActive(true);
             
             active_sword_scripts[i].damage_text = damage_texts[i];
+        }
+        
+        for (int i = 0; i < hero_sword.Length; i++)
+        {
+            if (hero_sword[i] != null)
+            {
+                ScriptableSwords base_sword = hero_sword[i];
+                active_hero_sword_scripts[i].Set_Script(base_sword);
+                active_hero_sword_scripts[i].is_heroic = true; // Bu aşağı tarafa da eklenebilir. 
+                active_hero_sword_scripts[i].data_from_hero = hero[i];
+                active_hero_sword_group[i].SetActive(true);
+                active_hero_sword_scripts[i].damage_text = damage_texts[i + 8];
+                StartCoroutine(active_hero_sword_scripts[i].AttackAlways());
+                
+            }
+
         }
         
     }
@@ -677,7 +705,6 @@ public class Inventory : MonoBehaviour
     {
         hero_sword[hero_ind] = sword_inventory[sword_ind].Item1;
         sword_inventory.RemoveAt(sword_ind);
-        On_Sword_Change?.Invoke();
     }
     
     public void remove_Sword_From_Hero(int hero_ind)
@@ -691,7 +718,6 @@ public class Inventory : MonoBehaviour
         {
             Debug.Log("No space in inventory");
         }
-        On_Sword_Change?.Invoke();
     }
     
 
